@@ -9,3 +9,6 @@ description = "A command line tool to compute and check MD5 checksums"
 md-5 = "0.10.6"
 clap = { version = "4.5.21", features = ["derive"] }
 anyhow = "1.0.93"
+
+[dev-dependencies]
+tempfile = "3.10.1"
