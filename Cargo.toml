@@ -2,7 +2,7 @@
 name = "md5sum"
 version = "0.1.0"
 edition = "2021"
-authors = ["Your Name"]
+authors = ["huanfeng"]
 description = "A command line tool to compute and check MD5 checksums"
 
 [dependencies]
