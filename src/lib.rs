@@ -27,7 +27,7 @@ pub fn process_file(path: &PathBuf, binary: bool) -> Result<()> {
     Ok(())
 }
 
-pub fn verify_checksums(path: &PathBuf) -> Result<()> {
+pub fn verify_checksums(path: &PathBuf, binary: bool) -> Result<()> {
     let file = File::open(path).with_context(|| format!("failed to open {}", path.display()))?;
     let reader = BufReader::new(file);
 
@@ -35,14 +35,31 @@ pub fn verify_checksums(path: &PathBuf) -> Result<()> {
         let line = line?;
         let parts: Vec<&str> = line.split_whitespace().collect();
 
-        if parts.len() != 2 {
+        // 检查行格式：[MD5] [模式标记] [文件名] 或 [MD5] [文件名]
+        if parts.len() < 2 || parts.len() > 3 {
             eprintln!("{}: improperly formatted checksum line", path.display());
             continue;
         }
 
-        let (expected_sum, filename) = (parts[0], parts[1]);
-        let file_path = PathBuf::from(filename);
+        let (expected_sum, filename, file_binary) = if parts.len() == 3 {
+            // 格式：[MD5] [模式标记] [文件名]
+            let mode = parts[1];
+            if mode != "*" && mode != " " {
+                eprintln!("{}: invalid mode marker", path.display());
+                continue;
+            }
+            (parts[0], parts[2], mode == "*")
+        } else {
+            // 格式：[MD5] [文件名]
+            (parts[0], parts[1], false)
+        };
 
+        // 检查二进制模式是否匹配
+        if binary != file_binary {
+            eprintln!("{}: warning: binary mode mismatch", filename);
+        }
+
+        let file_path = PathBuf::from(filename);
         if let Ok(file) = File::open(&file_path) {
             let computed_sum = compute_md5(file)?;
             if computed_sum == expected_sum {
@@ -118,7 +135,7 @@ mod tests {
         )?;
 
         // 验证校验和
-        verify_checksums(&checksum_file_path)?;
+        verify_checksums(&checksum_file_path, false)?;
 
         Ok(())
     }

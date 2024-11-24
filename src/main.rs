@@ -6,7 +6,7 @@ use anyhow::Result;
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
-    /// Read in binary mode
+    /// Read in binary mode (cannot be used with --text)
     #[arg(short = 'b', long, action = ArgAction::SetTrue)]
     binary: bool,
 
@@ -14,11 +14,7 @@ struct Cli {
     #[arg(short = 'c', long, action = ArgAction::SetTrue)]
     check: bool,
 
-    /// Create a BSD-style checksum
-    #[arg(long, action = ArgAction::SetTrue)]
-    tag: bool,
-
-    /// Read in text mode (default)
+    /// Read in text mode (default, cannot be used with --binary)
     #[arg(short = 't', long, action = ArgAction::SetTrue)]
     text: bool,
 
@@ -30,9 +26,15 @@ struct Cli {
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
+    // Check if both text and binary modes are specified
+    if cli.text && cli.binary {
+        eprintln!("Error: Cannot use both --text and --binary modes");
+        std::process::exit(1);
+    }
+
     if cli.check {
         for path in &cli.files {
-            if let Err(err) = md5sum::verify_checksums(path) {
+            if let Err(err) = md5sum::verify_checksums(path, cli.binary) {
                 eprintln!("{}: {}", path.display(), err);
             }
         }
